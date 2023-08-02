@@ -1,18 +1,21 @@
 package com.farizma.mycamera;
-
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
 
 public class LevelerView extends View {
+    private static final int LINE_LENGTH = 300;
+    private static final int LINE_WIDTH = 10;
+    private static final int TEXT_SIZE = 30;
 
-    private float pitchDegrees;
-    private boolean isHorizontallyAligned;
+    private Paint linePaint;
+    private Paint textPaint;
+    private Path linePath;
+    private float pitchDegrees = 0;
 
     public LevelerView(Context context) {
         super(context);
@@ -24,37 +27,21 @@ public class LevelerView extends View {
         init();
     }
 
-    public LevelerView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init();
-    }
-
     private void init() {
-        pitchDegrees = 0.0f;
-        isHorizontallyAligned = false;
+        linePaint = new Paint();
+        linePaint.setColor(Color.WHITE);
+        linePaint.setStrokeWidth(LINE_WIDTH);
+
+        textPaint = new Paint();
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(TEXT_SIZE);
+
+        linePath = new Path();
     }
 
-    public void setPitchDegrees(float pitchDegrees) {
-        this.pitchDegrees = pitchDegrees;
-        this.isHorizontallyAligned = pitchDegreesIsHorizontallyAligned();
-        startRotationAnimation();
-    }
-
-    private void startRotationAnimation() {
-        ValueAnimator animator = ValueAnimator.ofFloat(0.0f, pitchDegrees);
-        animator.setDuration(500); // Set the animation duration here (in milliseconds)
-        animator.setInterpolator(new LinearInterpolator());
-
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                float animatedValue = (float) valueAnimator.getAnimatedValue();
-                pitchDegrees = animatedValue;
-                invalidate(); // Redraw the view with the updated pitchDegrees value
-            }
-        });
-
-        animator.start();
+    public void setPitchDegrees(float degrees) {
+        pitchDegrees = degrees;
+        invalidate(); // Redraw the view with the new orientation
     }
 
     @Override
@@ -63,30 +50,23 @@ public class LevelerView extends View {
 
         int centerX = getWidth() / 2;
         int centerY = getHeight() / 2;
-        int indicatorSize = 200;
-        int indicatorMargin = 40;
 
-        Paint paint = new Paint();
-        paint.setAntiAlias(true);
+        // Draw the horizontal line
+        canvas.drawLine(centerX - LINE_LENGTH / 2, centerY, centerX + LINE_LENGTH / 2, centerY, linePaint);
 
-        // Draw a green horizontal line (representing level) at the center of the view
-        paint.setColor(Color.GREEN);
-        paint.setStrokeWidth(5);
-        canvas.drawLine(centerX - indicatorMargin, centerY, centerX + indicatorMargin, centerY, paint);
+        // Calculate the end points of the green line
+        float greenLineStartX = centerX;
+        float greenLineStartY = centerY;
+        float greenLineEndX = centerX + LINE_LENGTH / 2;
+        float greenLineEndY = centerY - (float) (LINE_LENGTH / 2 * Math.tan(Math.toRadians(pitchDegrees)));
 
-        // Calculate the endpoint of the indicator line based on the pitchDegrees
-        float angleRadians = (float) Math.toRadians(pitchDegrees);
-        float indicatorX = centerX + (indicatorSize / 2) * (float) Math.sin(angleRadians);
-        float indicatorY = centerY - (indicatorSize / 2) * (float) Math.cos(angleRadians);
+        // Draw the green line
+        linePaint.setColor(Color.GREEN);
+        canvas.drawLine(greenLineStartX, greenLineStartY, greenLineEndX, greenLineEndY, linePaint);
 
-        // Draw the indicator line
-        int indicatorColor = isHorizontallyAligned ? Color.GREEN : Color.RED;
-        paint.setColor(indicatorColor);
-        canvas.drawLine(centerX, centerY, indicatorX, indicatorY, paint);
-    }
-    private boolean pitchDegreesIsHorizontallyAligned() {
-        // Threshold value to consider the device as horizontally aligned
-        float threshold = 2.0f;
-        return Math.abs(pitchDegrees) < threshold;
+        // Draw the text showing the pitch angle
+        String text = "Pitch: " + pitchDegrees + "°";
+        float textWidth = textPaint.measureText(text);
+        canvas.drawText(text, centerX - textWidth / 2, centerY - LINE_LENGTH / 2 - 20, textPaint);
     }
 }
