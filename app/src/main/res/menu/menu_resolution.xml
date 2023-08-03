@@ -1,20 +1,12 @@
 <!-- res/menu/menu_resolution.xml -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <group android:checkableBehavior="single">
-        <item
-            android:id="@+id/resolution_low"
-            android:title="Low Resolution (640x480)"
-            android:checkable="true"
-            android:checked="false" />
-        <item
-            android:id="@+id/resolution_medium"
-            android:title="Medium Resolution (1280x720)"
-            android:checkable="true"
-            android:checked="true" />
-        <item
-            android:id="@+id/resolution_high"
-            android:title="High Resolution (1920x1080)"
-            android:checkable="true"
-            android:checked="false" />
-    </group>
+    <item
+        android:id="@+id/resolution_low"
+        android:title="Low Resolution" />
+    <item
+        android:id="@+id/resolution_medium"
+        android:title="Medium Resolution" />
+    <item
+        android:id="@+id/resolution_high"
+        android:title="High Resolution" />
 </menu>

@@ -35,6 +35,10 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
@@ -62,7 +66,21 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static final int PICTURE_SIZE_LOW = 0;
     private static final int PICTURE_SIZE_MEDIUM = 1;
     private static final int PICTURE_SIZE_HIGH = 2;
-    private int selectedPictureSize = PICTURE_SIZE_MEDIUM;
+    private List<ResolutionOption> resolutionOptions;
+
+    private Sensor accelerometerSensor;
+
+    private float[] accelerometerReading = new float[3];
+    private float[] magneticFieldReading = new float[3];
+
+    private float[] accelerometerValues = new float[3];
+
+    private float[] magneticFieldValues = new float[3];
+
+
+    private Sensor magneticFieldSensor;
+
+    private int selectedResolutionIndex = 1; // Default: Medium Resolution
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,13 +102,15 @@ public class MainActivity extends Activity implements SensorEventListener {
         pausePlayButton = findViewById(R.id.pausePlay);
         cameraFrameLayout = findViewById(R.id.cameraPreview);
         levelerView = findViewById(R.id.levelerView);
-
-        imageQualityButton = findViewById(R.id.image_quality);
-
-
+        resolutionOptions = new ArrayList<>();
+        resolutionOptions.add(new ResolutionOption("Low Resolution", 640, 480));
+        resolutionOptions.add(new ResolutionOption("Medium Resolution", 1280, 720));
+        resolutionOptions.add(new ResolutionOption("High Resolution", 1920, 1080));
+        updateResolutionText();
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
-            rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            magneticFieldSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         }
 
 
@@ -129,28 +149,36 @@ public class MainActivity extends Activity implements SensorEventListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.resolution_low:
-                selectedPictureSize = PICTURE_SIZE_LOW;
-                Toast.makeText(this, "Low Resolution Selected", Toast.LENGTH_SHORT).show();
+                selectedResolutionIndex = 0;
+                updateResolutionText();
                 return true;
             case R.id.resolution_medium:
-                selectedPictureSize = PICTURE_SIZE_MEDIUM;
-                Toast.makeText(this, "Medium Resolution Selected", Toast.LENGTH_SHORT).show();
+                selectedResolutionIndex = 1;
+                updateResolutionText();
                 return true;
             case R.id.resolution_high:
-                selectedPictureSize = PICTURE_SIZE_HIGH;
-                Toast.makeText(this, "High Resolution Selected", Toast.LENGTH_SHORT).show();
+                selectedResolutionIndex = 2;
+                updateResolutionText();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
+
+    private void updateResolutionText() {
+        TextView resolutionText = findViewById(R.id.textResolution);
+        resolutionText.setText(resolutionOptions.get(selectedResolutionIndex).getName());
+    }
+
+
     @Override
     protected void onResume() {
         super.onResume();
         if(isBack) start(Camera.CameraInfo.CAMERA_FACING_BACK);
         else  start(Camera.CameraInfo.CAMERA_FACING_FRONT);
-        if (rotationSensor != null) {
-            sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        if (accelerometerSensor != null && magneticFieldSensor != null) {
+            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, magneticFieldSensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
     }
 
@@ -420,25 +448,26 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-            float[] rotationMatrix = new float[9];
-            float[] orientationValues = new float[3];
-            float[] rotationVector = event.values;
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, accelerometerValues, 0, 3);
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, magneticFieldValues, 0, 3);
+        }
 
-            SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector);
+        float[] rotationMatrix = new float[9];
+        boolean success = SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerValues, magneticFieldValues);
+        if (success) {
+            float[] orientationValues = new float[3];
             SensorManager.getOrientation(rotationMatrix, orientationValues);
 
             float pitch = orientationValues[1];
             float pitchDegrees = (float) Math.toDegrees(pitch);
 
             levelerView.setPitchDegrees(pitchDegrees);
-
-            if (Math.abs(pitchDegrees) < 2) {
-                // Device is vertically aligned
-                // You can add UI changes or actions here when the device is vertically aligned
-            }
         }
     }
+
+
 
 
 }
