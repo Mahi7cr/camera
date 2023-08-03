@@ -1,4 +1,4 @@
 package com.farizma.mycamera;
 
-public class MainRepo {
+public class testcase {
 }
